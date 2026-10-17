@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en" class="auth-pending">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ZotRider · Your campus. Your ride.</title>
+<meta name="description" content="Student-to-student scooter and bike rentals at UC Irvine.">
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- Reusable drawings: scooter, bike, map pin -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="sc" viewBox="0 0 400 240"><g fill="none" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="80" cy="180" r="42" stroke="var(--frame,#171A18)" stroke-width="12"/><circle cx="80" cy="180" r="10" fill="#FFD200" stroke="none"/>
+<circle cx="322" cy="180" r="42" stroke="var(--frame,#171A18)" stroke-width="12"/><circle cx="322" cy="180" r="10" fill="#FFD200" stroke="none"/>
+<path d="M80 180 L118 176 H300" stroke="var(--sc,#0064A4)" stroke-width="22"/>
+<path d="M300 176 L280 40 M262 36 H318" stroke="var(--frame,#171A18)" stroke-width="10"/>
+<path d="M300 176 L322 180" stroke="var(--frame,#171A18)" stroke-width="8"/>
+<path d="M118 176 L98 150" stroke="var(--frame,#171A18)" stroke-width="8"/>
+<path d="M130 168 H250" stroke="#FFD200" stroke-width="5"/></g></symbol>
+<symbol id="bk" viewBox="0 0 400 240"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="90" cy="165" r="55" stroke="var(--frame,#171A18)" stroke-width="9"/><circle cx="310" cy="165" r="55" stroke="var(--frame,#171A18)" stroke-width="9"/><path d="M90 165L160 90H260L310 165M160 90L200 165H90M200 165L260 90M150 70H185M260 90L245 55H285" stroke="var(--sc,#0064A4)" stroke-width="9"/><circle cx="200" cy="165" r="9" fill="#FFD200" stroke="none"/></g></symbol>
+<symbol id="pin" viewBox="0 0 24 24"><path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+</defs></svg>
+
+<nav id="nav">
+  <div class="wrap">
+    <a class="logo" href="#top"><img src="assets/logo.png" alt="" width="36" height="36" class="logo-mark">Zot<b>Rider</b></a>
+    <div class="nav-actions">
+      <a class="l" href="#explore">Explore</a>
+      <a class="l" href="#owners">Earn</a>
+      <button class="btn p nav-list" data-list>List your ride</button>
+      <button class="btn o sm" id="msgs">Messages <span id="mc"></span></button>
+      <button class="btn o sm" id="lo">Log out</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <span class="eyebrow">Scooters &amp; bikes · UC Irvine</span>
+    <h1>Your campus.<br><em>Your ride.</em></h1>
+    <p class="sub">Rent a scooter or bike from another Anteater, or earn from yours when you're not riding it.</p>
+    <div class="ctas"><a class="btn p" href="#explore">Find a ride →</a><button class="btn o" data-list>List your ride</button></div>
+    <div class="search" role="search"><select id="heroLoc" aria-label="Pickup area"></select><button class="btn p" id="heroGo">Search nearby</button></div>
+  </div>
+  <svg class="herovis" id="hv" viewBox="0 0 780 240" aria-label="Illustration of an electric scooter and a bike" role="img"><use href="#sc" x="0" width="400" height="240" style="--sc:#0064A4"/><use href="#bk" x="380" width="400" height="240" style="--sc:#FFD200"/></svg>
+  <span class="coord">33.6405° N · 117.8443° W</span>
+</header>
+
+<div class="story" id="story"><div class="sticky"><div class="wrap">
+  <div>
+    <span class="step" id="stepL">01 — Move</span>
+    <h2 id="stepH">Follow the route.</h2>
+    <p id="stepP">Rides are parked all over campus. Scroll to trace a ride from Aldrich Park outward.</p>
+    <p class="fine">Stylized map, not to scale.</p>
+  </div>
+  <svg class="cmap" viewBox="0 0 600 420" aria-hidden="true">
+    <g fill="none" stroke="#57C7F5" stroke-opacity=".35" stroke-width="2"><circle cx="300" cy="210" r="90"/><circle cx="300" cy="210" r="56"/><path d="M30 120 C200 110 380 330 570 300M120 400 C200 280 420 120 540 20M300 0V420" stroke-dasharray="3 7"/></g>
+    <path id="route" d="M70 340 C150 300 190 230 300 215 S470 180 530 80" fill="none" stroke="#FFD200" stroke-width="5" stroke-linecap="round"/>
+    <g class="mk"><circle cx="70" cy="340" r="9" fill="#FFD200"/><text x="84" y="362" fill="#F6F7F9" font-size="13">Pickup</text></g>
+    <g class="mk"><circle cx="300" cy="215" r="9" fill="#FFD200"/><text x="314" y="244" fill="#F6F7F9" font-size="13">Aldrich Park</text></g>
+    <g class="mk"><circle cx="530" cy="80" r="9" fill="#FFD200"/><text x="440" y="62" fill="#F6F7F9" font-size="13">Drop-off</text></g>
+    <g class="mk"><rect x="120" y="258" width="104" height="30" rx="15" fill="#F6F7F9"/><text x="172" y="278" text-anchor="middle" fill="#171A18" font-size="13" font-weight="600">$4/hr · 0.2 mi</text></g>
+    <g class="mk"><rect x="380" y="150" width="104" height="30" rx="15" fill="#F6F7F9"/><text x="432" y="170" text-anchor="middle" fill="#171A18" font-size="13" font-weight="600">$5/hr · 0.4 mi</text></g>
+  </svg>
+</div></div></div>
+
+<section class="sec" id="explore"><div class="wrap">
+  <span class="eyebrow">Explore</span><h2>Nearby rides</h2>
+  <p class="note"><span class="demo">DEMO DATA</span> These listings are samples. Real listings will appear here once the site is connected to the database.</p>
+  <div class="tools">
+    <select id="loc" aria-label="Your location"></select>
+    <select id="type" aria-label="Ride type"><option value="all">All rides</option><option value="scooter">Scooters</option><option value="bike">Bikes</option></select>
+    <select id="sort" aria-label="Sort"><option value="d">Nearest first</option><option value="p">Lowest price</option></select>
+    <label class="range">Max <output id="maxo">$12</output>/hr <input type="range" id="max" min="2" max="12" value="12" aria-label="Maximum hourly price"></label>
+    <label class="check"><input type="checkbox" id="av"> Available only</label>
+    <div class="seg" role="group" aria-label="View"><button aria-pressed="true" data-v="list">List</button><button aria-pressed="false" data-v="map">Map</button></div>
+  </div>
+  <div id="geomsg" role="status"></div>
+  <div id="out"></div>
+</div></section>
+
+<section class="sec how-sec" id="how"><div class="wrap">
+  <span class="eyebrow">How it works</span><h2>Three steps. No keys, no lines.</h2>
+  <div class="how">
+    <div class="rv"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#pin" x="6" y="6" width="52" height="52" style="stroke-width:.75"/></svg><b>01</b><h3>Find</h3><p>See scooters and bikes ranked by distance from where you are.</p></div>
+    <div class="rv"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="10" y="14" width="44" height="40" rx="6"/><path d="M10 26h44M22 8v10M42 8v10M24 40l6 6 10-12"/></svg><b>02</b><h3>Book</h3><p>Pick a time and request it. Pay once the owner approves.</p></div>
+    <div class="rv"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="16" cy="46" r="9"/><circle cx="50" cy="46" r="9"/><path d="M16 46h26l-4-30m-6-2h12"/></svg><b>03</b><h3>Ride</h3><p>Meet the owner at the pickup spot and head to class.</p></div>
+  </div>
+</div></section>
+
+<section class="own" id="owners"><div class="wrap">
+  <div>
+    <span class="eyebrow">For owners</span><h2>Your ride.<br><em>Your rules.</em></h2>
+    <ul>
+      <li>Set your own price: per hour, per day, or both.</li>
+      <li>Choose your pickup spot and where it can be returned.</li>
+      <li>Approve every request before anyone rides.</li>
+      <li>Get paid in-app after each rental.</li>
+    </ul>
+    <button class="btn p" data-list>List your ride</button>
+  </div>
+  <div class="earn">
+    <span class="eyebrow">Earnings estimator</span>
+    <output id="eo">$48</output>
+    <p id="el">at $4/hr × 12 hrs rented per week</p>
+    <label for="eh">Hours rented per week</label><input id="eh" type="range" min="2" max="30" value="12">
+    <label for="ep">Your price per hour</label><input id="ep" type="range" min="2" max="10" value="4">
+    <p class="fine">Illustrative only, before ZotRider's service fee.</p>
+  </div>
+</div></section>
+
+<section class="final"><div class="wrap">
+  <h2>There's a better way to get around campus.</h2>
+  <div class="ctas center"><a class="btn p" href="#explore">Find your ride</a><button class="btn" data-list>Start earning with your ride</button></div>
+</div></section>
+
+<footer><div class="wrap">
+  <div>
+    <div class="logo"><img src="assets/logo.png" alt="" width="64" height="64" class="logo-mark big">Zot<b>Rider</b></div>
+    <p>Student-to-student scooter and bike rentals at UC Irvine. An independent student project, not affiliated with UCI.</p>
+  </div>
+  <div><h4>Product</h4><a href="#explore">Explore</a><a href="#owners">Earn</a></div>
+  <div><h4>Help</h4><a href="#how">How it works</a><a href="mailto:">Contact</a></div>
+  <div><h4>Safety</h4><a href="#how">Wear a helmet</a><a href="#how">Follow campus rules</a></div>
+</div></footer>
+
+<dialog id="dd"><div class="dh"><h3 id="dt"></h3><button class="x" aria-label="Close" data-close>×</button></div><div class="db" id="dbody"></div></dialog>
+<dialog id="cd"><div class="dh"><h3 id="ct">Messages</h3><button class="x" aria-label="Close" data-close>×</button></div><div class="db" id="cbody"></div></dialog>
+<dialog id="ld"><div class="dh"><h3>List your ride</h3><button class="x" aria-label="Close" data-close>×</button></div><div class="db" id="lbody"></div></dialog>
+
+<script type="module" src="auth-guard.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

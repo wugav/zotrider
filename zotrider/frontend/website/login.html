@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sign in · ZotRider</title>
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body class="login-page">
+
+<main class="login">
+  <!-- Brand side -->
+  <section class="login-brand" aria-hidden="true">
+    <svg class="login-map" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid slice">
+      <g fill="none" stroke="#57C7F5" stroke-opacity=".3" stroke-width="2">
+        <circle cx="300" cy="300" r="150"/><circle cx="300" cy="300" r="95"/>
+        <path d="M-20 170 C180 150 380 450 620 410M90 640 C190 450 430 210 580 -20M300 -20V620" stroke-dasharray="3 8"/>
+      </g>
+      <g class="login-route">
+        <path d="M520 50 C545 150 540 210 495 270 S430 360 475 420" fill="none" stroke="#FFD200" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="520" cy="50" r="9" fill="#FFD200"/><circle cx="475" cy="420" r="9" fill="#FFD200"/>
+      </g>
+    </svg>
+    <div class="login-brand-copy">
+      <span class="eyebrow">Scooters &amp; bikes · UC Irvine</span>
+      <h1>Your campus.<br><em>Your ride.</em></h1>
+      <p>Rent from fellow Anteaters, or earn from your ride when you're not using it.</p>
+    </div>
+    <svg class="login-vis" viewBox="0 0 780 240">
+      <defs>
+        <symbol id="sc" viewBox="0 0 400 240"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="80" cy="180" r="42" stroke="#F6F7F9" stroke-width="12"/><circle cx="80" cy="180" r="10" fill="#FFD200"/><circle cx="322" cy="180" r="42" stroke="#F6F7F9" stroke-width="12"/><circle cx="322" cy="180" r="10" fill="#FFD200"/><path d="M80 180 L118 176 H300" stroke="#57C7F5" stroke-width="22"/><path d="M300 176 L280 40 M262 36 H318" stroke="#F6F7F9" stroke-width="10"/><path d="M300 176 L322 180" stroke="#F6F7F9" stroke-width="8"/><path d="M118 176 L98 150" stroke="#F6F7F9" stroke-width="8"/><path d="M130 168 H250" stroke="#FFD200" stroke-width="5"/></g></symbol>
+        <symbol id="bk" viewBox="0 0 400 240"><g fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="90" cy="165" r="55" stroke="#F6F7F9" stroke-width="9"/><circle cx="310" cy="165" r="55" stroke="#F6F7F9" stroke-width="9"/><path d="M90 165L160 90H260L310 165M160 90L200 165H90M200 165L260 90M150 70H185M260 90L245 55H285" stroke="#FFD200" stroke-width="9"/><circle cx="200" cy="165" r="9" fill="#FFD200"/></g></symbol>
+      </defs>
+      <use href="#sc" x="0" width="400" height="240"/><use href="#bk" x="380" width="400" height="240"/>
+    </svg>
+  </section>
+
+  <!-- Sign-in side -->
+  <section class="login-panel">
+    <div class="login-card">
+      <img src="assets/logo.png" alt="ZotRider logo" width="96" height="96" class="logo-mark login-logo">
+      <h2>Sign in to Zot<b>Rider</b></h2>
+      <p class="login-sub">For UC Irvine students. Use your <strong>@uci.edu</strong> Google account.</p>
+
+      <button class="btn p login-btn" id="login-btn" type="button">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+        <span id="login-label">Continue with UCI Google</span>
+      </button>
+      <p class="login-error" id="error" role="alert"></p>
+
+      <ul class="login-points">
+        <li>Only verified UCI accounts can rent or list.</li>
+        <li>Owners approve every request.</li>
+        <li>Payments stay inside ZotRider.</li>
+      </ul>
+    </div>
+    <p class="login-foot">An independent student project, not affiliated with UC Irvine.</p>
+  </section>
+</main>
+
+<script type="module" src="login.js"></script>
+</body>
+</html>
