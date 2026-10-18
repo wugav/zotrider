@@ -1,0 +1,10 @@
+{
+  "name": "zotrider",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ZotRider: peer-to-peer scooter and bike rentals for UCI students (front-end prototype)",
+  "scripts": {
+    "dev": "npx --yes serve . -l 3000",
+    "format": "npx --yes prettier --write index.html styles.css app.js"
+  }
+}
