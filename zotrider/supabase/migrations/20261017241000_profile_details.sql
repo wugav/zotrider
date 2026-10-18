@@ -47,3 +47,5 @@ $$;
 
 revoke execute on function public.booking_payment_contact(uuid) from public, anon;
 grant execute on function public.booking_payment_contact(uuid) to authenticated;
+
+grant select, insert, update on public.profile_details to authenticated;

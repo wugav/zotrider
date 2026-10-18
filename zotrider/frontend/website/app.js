@@ -234,7 +234,9 @@ async function openDetail(id) {
 
   if (isMine(s)) {
     $("#dbody").innerHTML = `${info}<div class="msg">This is your listing. Requests for it show up under <b>Bookings</b>.</div>
-      <button class="btn o" id="toggleActive">${s.is_active ? "Hide this listing" : "Show this listing again"}</button> <div class="err" id="berr" role="alert"></div>`;
+            <div class="ctas"><button class="btn p" id="editListing">Edit listing</button><button class="btn o" id="toggleActive">${s.is_active ? "Hide this listing" : "Show this listing again"}</button><button class="btn o danger" id="deleteListing">Delete listing</button></div><div class="err" id="berr" role="alert"></div>`;
+    $("#editListing").onclick = () => editListing(s);
+    $("#deleteListing").onclick = () => deleteListing(s);
     $("#toggleActive").onclick = async () => {
       const { error } = await supabase.from("listings").update({ is_active: !s.is_active }).eq("id", s.id);
       if (error) $("#berr").textContent = friendly(error); else { $("#dd").close(); loadListings(); }
@@ -483,7 +485,263 @@ $("#cd").addEventListener("close", () => { if (chatChannel) { supabase.removeCha
 // ---------------------------------------------------------------------
 // List your ride (4 steps) → saved to Supabase
 // ---------------------------------------------------------------------
-let L = {}, step = 0, photos = [];
+// ---------------------------------------------------------------------
+// Profile: contact info for Zelle + default listing info
+// ---------------------------------------------------------------------
+let PROFILE = null; // saved row from profile_details (or null)
+
+
+// Shared photo picker (profile + listing form): one photo, remove it with ×.
+// Items are { file, url } (new) or { path, url } (already uploaded).
+function photoPicker(input, preview, items, errEl) {
+  input.removeAttribute("multiple");
+  const render = () => {
+    preview.innerHTML = items.map((it, i) =>
+      `<span style="position:relative;display:inline-block"><img src="${esc(it.url)}" alt="Photo"><button type="button" class="x" data-i="${i}" aria-label="Remove photo" style="position:absolute;top:-6px;right:-6px;width:24px;height:24px;font-size:14px;line-height:1">×</button></span>`
+    ).join("");
+    preview.querySelectorAll("[data-i]").forEach((b) => (b.onclick = () => { items.splice(+b.dataset.i, 1); render(); }));
+    input.disabled = items.length >= 1;
+  };
+  input.onchange = (e) => {
+    const f = e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    if (f.size > 6 * 1024 * 1024) { if (errEl) errEl.textContent = "The photo must be under 6 MB."; return; }
+    if (errEl) errEl.textContent = "";
+    items.splice(0, items.length, { file: f, url: URL.createObjectURL(f) });
+    render();
+  };
+  render();
+  return render;
+}
+
+// Upload new photos and keep the ones already uploaded. Returns storage paths.
+async function uploadPhotos(items, prefix = "") {
+  const paths = [];
+  for (const it of items) {
+    if (it.path) { paths.push(it.path); continue; }
+    const ext = (it.file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const path = `${me.id}/${prefix}${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("listing-photos").upload(path, it.file, { contentType: it.file.type });
+    if (error) throw new Error("Photo upload failed: " + friendly(error));
+    paths.push(path);
+  }
+  return paths;
+}
+async function loadProfile() {
+  const { data } = await supabase.from("profile_details").select("*").eq("user_id", me.id).maybeSingle();
+  PROFILE = data || null;
+  return PROFILE;
+}
+
+const mapsLink = (addr) => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(addr);
+
+async function openProfile() {
+  $("#pbody").innerHTML = `<p class="note">Loading…</p>`;
+  $("#pd").showModal();
+  const p = (await loadProfile()) || {};
+  const dollars = (c) => (c == null ? "" : c / 100);
+  const areaOpts = `<option value="">Choose a campus area…</option>${spotOpts}`;
+  const photoItems = (p.default_photo_paths || []).slice(0, 1).map((path) => ({ path, url: photoUrl(path) }));
+  $("#pbody").innerHTML = `
+    <div class="f">
+      <span class="eyebrow">About me</span>
+      <p class="note" style="margin:0">Your contact info for Zelle. Only shown to a renter after you approve their booking.</p>
+      <label for="pfn">Full name</label>
+      <input id="pfn" maxlength="80" value="${esc(p.full_name || "")}" placeholder="Your name">
+      <div class="two">
+        <div><label for="pph">Phone (Zelle)</label><input id="pph" type="tel" maxlength="30" value="${esc(p.phone || "")}" placeholder="(949) 555-0123"></div>
+        <div><label for="pem">Email (Zelle)</label><input id="pem" type="email" maxlength="120" value="${esc(p.contact_email || "")}" placeholder="you@example.com"></div>
+      </div>
+
+      <span class="eyebrow" style="margin-top:28px">My ride</span>
+      <p class="note" style="margin:0">Fills in the "List your ride" form. You can still change anything for each listing.</p>
+      <label for="pty">Type</label>
+      <select id="pty"><option value="">Choose…</option><option value="scooter">E-scooter</option><option value="ebike">E-bike</option><option value="bike">Bike</option></select>
+      <label for="pti">Listing title</label>
+      <input id="pti" maxlength="80" value="${esc(p.default_title || "")}" placeholder="e.g. Zot Cruiser">
+      <label for="pmo">Model</label>
+      <input id="pmo" maxlength="80" value="${esc(p.default_model || "")}" placeholder="e.g. Xiaomi Pro 4">
+      <div class="two">
+        <div><label for="prg">Range (mi, optional)</label><input id="prg" type="number" min="1" max="200" value="${p.default_range_miles ?? ""}" placeholder="25"></div>
+        <div><label for="psp">Top speed (mph, max 40)</label><input id="psp" type="number" min="1" max="40" value="${p.default_top_speed_mph ?? ""}" placeholder="18"></div>
+      </div>
+      <label for="pds">Description</label>
+      <textarea id="pds" rows="3" maxlength="2000" placeholder="Condition, helmet included, anything renters should know">${esc(p.default_description || "")}</textarea>
+      <label for="ppf">Photo</label>
+      <input type="file" id="ppf" accept="image/*" multiple>
+      <div class="prev" id="ppv">${(p.default_photo_paths || []).map((x) => `<img src="${esc(photoUrl(x))}" alt="">`).join("")}</div>
+
+      <div class="two">
+        <div><label for="pmn">Price per minute (¢)</label><input id="pmn" type="number" min="1" max="200" step="1" value="${p.default_minute_cents ?? ""}" placeholder="15"></div>
+        <div><label for="pdy">Daily price ($)</label><input id="pdy" type="number" min="1" max="500" step="1" value="${dollars(p.default_daily_cents)}" placeholder="15"></div>
+      </div>
+      <label for="pdp">Deposit ($)</label>
+      <input id="pdp" type="number" min="0" max="500" step="1" value="${dollars(p.default_deposit_cents)}">
+      <div class="two">
+        <div><label for="pst">Usually available from</label><select id="pst">${hopts(6 * 60, 23 * 60, p.default_daily_start ?? 8 * 60)}</select></div>
+        <div><label for="pen">Until</label><select id="pen">${hopts(7 * 60, 24 * 60 - 15, p.default_daily_end ?? 21 * 60)}</select></div>
+      </div>
+
+      <label for="ppar">Pickup area (shown publicly, about 100 m)</label>
+      <select id="ppar">${areaOpts}</select>
+      <label for="ppa">Exact pickup address (private, shown after payment)</label>
+      <input id="ppa" maxlength="200" value="${esc(p.default_pickup_address || "")}" placeholder="e.g. Langson Library, Irvine, CA">
+      <a class="note" id="ppaLink" target="_blank" rel="noopener">Check on Google Maps ↗</a>
+
+      <label for="prar">Return area (shown publicly)</label>
+      <select id="prar">${areaOpts}</select>
+      <label for="pra">Exact return address (private, shown after payment)</label>
+      <input id="pra" maxlength="200" value="${esc(p.default_return_address || "")}" placeholder="e.g. Same rack as pickup, or an address">
+      <a class="note" id="praLink" target="_blank" rel="noopener">Check on Google Maps ↗</a>
+
+      <div class="err" id="perr" role="alert"></div>
+    </div>
+    <div class="ctas" style="margin-top:20px"><button class="btn p" id="psave">Save profile</button></div>`;
+
+  $("#pty").value = p.default_type || "";
+  $("#ppar").value = p.default_pickup_area || "";
+  $("#prar").value = p.default_return_area || "";
+
+  // "Check on Google Maps" links: always visible, gray until there's an address
+  const link = (inp, a) => {
+    const set = () => {
+      const v = $(inp).value.trim();
+      $(a).href = v ? mapsLink(v) : "#";
+      $(a).style.opacity = v ? "1" : "0.4";
+      $(a).style.pointerEvents = v ? "auto" : "none";
+      $(a).setAttribute("aria-disabled", v ? "false" : "true");
+    };
+    $(inp).oninput = set;
+    set();
+  };
+  link("#ppa", "#ppaLink");
+  link("#pra", "#praLink");
+
+  const renderProfilePhotos = photoPicker($("#ppf"), $("#ppv"), photoItems);
+
+  $("#psave").onclick = async () => {
+    const btn = $("#psave");
+    const err = (m) => { $("#perr").textContent = m; btn.disabled = false; btn.textContent = "Save profile"; };
+    const val = (id) => $(id).value.trim();
+    const email = val("#pem"), title = val("#pti"), rg = val("#prg"), sp = val("#psp"), mn = val("#pmn"), dy = val("#pdy");
+    const st = +$("#pst").value, en = +$("#pen").value;
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err("That email doesn't look right.");
+    if (title && title.length < 3) return err("The title needs at least 3 characters.");
+    if (rg && (+rg < 1 || +rg > 200)) return err("Range must be 1–200 miles.");
+    if (sp && (+sp < 1 || +sp > 40)) return err("Top speed must be between 1 and 40 mph.");
+    if (mn && (!Number.isInteger(+mn) || +mn < 1 || +mn > 200)) return err("Price per minute must be a whole number of cents, 1–200¢.");
+    if (dy && (+dy < 1 || +dy > 500)) return err("Daily price must be $1–$500.");
+    if (en <= st) return err("The end time must be after the start time.");
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+
+        let paths;
+    try { paths = await uploadPhotos(photoItems, "profile-"); } catch (e) { return err(e.message); }
+
+    const row = {
+      user_id: me.id,
+      full_name: val("#pfn") || null,
+      phone: val("#pph") || null,
+      contact_email: email || null,
+      default_type: $("#pty").value || null,
+      default_title: title || null,
+      default_model: val("#pmo") || null,
+      default_range_miles: rg === "" ? null : Math.round(+rg),
+      default_top_speed_mph: sp === "" ? null : Math.round(+sp),
+      default_description: val("#pds") || null,
+      default_photo_paths: paths,
+      default_minute_cents: mn === "" ? null : +mn,
+      default_daily_cents: dy === "" ? null : Math.round(+dy * 100),
+      default_deposit_cents: val("#pdp") === "" ? 0 : Math.round(+val("#pdp") * 100),
+      default_daily_start: st,
+      default_daily_end: en,
+      default_pickup_area: $("#ppar").value || null,
+      default_pickup_address: val("#ppa") || null,
+      default_return_area: $("#prar").value || null,
+      default_return_address: val("#pra") || null,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase.from("profile_details").upsert(row);
+    if (error) return err("Couldn't save: " + friendly(error));
+    PROFILE = row;
+        photoItems.splice(0, photoItems.length, ...paths.map((path) => ({ path, url: photoUrl(path) }))); renderProfilePhotos();
+    btn.textContent = "Saved ✓";
+    setTimeout(() => { btn.disabled = false; btn.textContent = "Save profile"; }, 1500);
+  };
+}
+$("#prof").onclick = openProfile;
+
+// Open "List your ride" with your profile defaults filled in (you can still edit them)
+async function openListForm() {
+  step = 0;
+  const fresh = !L.title && !photos.length;   // don't overwrite a form you already started
+  if (fresh) {
+    const p = PROFILE || (await loadProfile());
+    if (p) {
+      if (p.default_type) L.type = p.default_type;
+      if (p.default_title) L.title = p.default_title;
+      if (p.default_model) L.model = p.default_model;
+      if (p.default_range_miles) L.range = String(p.default_range_miles);
+      if (p.default_top_speed_mph) L.speed = String(p.default_top_speed_mph);
+      if (p.default_description) L.description = p.default_description;
+      if (p.default_minute_cents) L.minute = String(p.default_minute_cents);
+      if (p.default_daily_cents) L.daily = String(p.default_daily_cents / 100);
+      if (p.default_daily_start != null) L.st = p.default_daily_start;
+      if (p.default_daily_end != null) L.en = p.default_daily_end;
+      if (p.default_pickup_area && SPOTS[p.default_pickup_area]) {
+        L.area = p.default_pickup_area;
+        L.ll = SPOTS[p.default_pickup_area];
+      }
+      // Exact addresses go in the private instructions (shown only after payment)
+      const notes = [
+        p.default_pickup_address && `Pickup: ${p.default_pickup_address}`,
+        p.default_return_address && `Return: ${p.default_return_address}`,
+      ].filter(Boolean);
+      if (notes.length) L.instructions = notes.join(" · ");
+      // The public return spot only says the area
+      if (p.default_return_area) L.ret = `Return near ${p.default_return_area}`;
+      photos = (p.default_photo_paths || []).slice(0, 1).map((path) => ({ path, url: photoUrl(path) }));
+    }
+  }
+  lform();
+  $("#ld").showModal();
+}
+let L = {}, step = 0, photos = [], editingId = null, keptPhotos = [];
+
+// Edit: open the same 4-step form, filled in with this listing
+async function editListing(s) {
+  const { data: pd } = await supabase.from("listing_pickup_details").select("instructions").eq("listing_id", s.id).maybeSingle();
+  const spot = SPOTS[s.pickup_area] ? s.pickup_area : null;
+  editingId = s.id; keptPhotos = s.photo_paths || []; photos = [];
+  L = {
+    type: s.type, title: s.title, model: s.model || "", range: s.range_miles ?? "", speed: s.top_speed_mph ?? "",
+    description: s.description || "", minute: s.minute_price_cents ?? "", daily: s.daily_price_cents ? s.daily_price_cents / 100 : "",
+    instructions: pd?.instructions || "", ret: s.return_note || "",
+    from: s.available_from || today(), until: s.available_until || "",
+    st: toMin(s.daily_start) ?? 8 * 60, en: toMin(s.daily_end) ?? 21 * 60,
+    area: s.pickup_area, ll: [s.lat, s.lng],
+    pinLL: spot ? null : [s.lat, s.lng], pinArea: spot ? null : String(s.pickup_area).replace(/^Near /, ""),
+  };
+  step = 0;
+  $("#ld .dh h3").textContent = "Edit your ride";
+  $("#dd").close();
+  lform();
+  $("#ld").showModal();
+}
+
+// Delete: removed for good if it was never booked, otherwise hidden forever
+// (past bookings and reviews still need it)
+async function deleteListing(s) {
+  if (!confirm(`Delete “${s.title}”? This can’t be undone.`)) return;
+  const b = $("#deleteListing");
+  b.disabled = true; b.textContent = "Deleting…";
+  const { error } = await supabase.rpc("delete_listing", { p_listing_id: s.id });
+  if (error) { $("#berr").textContent = friendly(error); b.disabled = false; b.textContent = "Delete listing"; return; }
+  if (s.photo_paths?.length) await supabase.storage.from("listing-photos").remove(s.photo_paths);
+  $("#dd").close();
+  loadListings();
+}
 function lform() {
   const st = ["Ride", "Location & price", "Availability", "Review"];
   let h = `<div class="prog">${st.map((_, i) => `<i class="${i <= step ? "on" : ""}"></i>`).join("")}</div><span class="eyebrow">Step ${step + 1} of 4 — ${st[step]}</span><div class="f">`;
@@ -492,7 +750,7 @@ function lform() {
     <label for="lm">Model</label><input id="lm" maxlength="80" value="${esc(L.model || "")}" placeholder="e.g. Xiaomi Pro 4">
     <div class="two"><div><label for="lr">Range (mi, optional)</label><input id="lr" type="number" min="1" max="200" value="${esc(L.range || "")}" placeholder="25"></div><div><label for="ls">Top speed (mph, max 40)</label><input id="ls" type="number" min="1" max="40" value="${esc(L.speed || "")}" placeholder="18"></div></div><div class="err" id="e2"></div>
     <label for="ld2">Description</label><textarea id="ld2" rows="3" maxlength="2000" placeholder="Condition, helmet included, anything renters should know">${esc(L.description || "")}</textarea>
-    <label for="lp">Photos (up to 4)</label><input type="file" id="lp" accept="image/*" multiple><div class="prev" id="pv"></div><div class="err" id="e0"></div>`;
+    <label for="lp">Photo</label><input type="file" id="lp" accept="image/*" multiple><div class="prev" id="pv"></div><div class="err" id="e0"></div>`;
   if (step === 1) h += `<div class="two"><div><label for="lpr">Price per minute (¢)</label><input id="lpr" type="number" min="1" max="200" step="1" value="${esc(L.minute || "")}" placeholder="15"></div><div><label for="lpd">Daily price ($)</label><input id="lpd" type="number" min="1" max="500" step="1" value="${esc(L.daily || "")}" placeholder="15"></div></div>
     <p class="note" style="margin:6px 0 0">Fill in one or both. Renters are charged whichever is cheaper.</p><div class="err" id="e3"></div>
     <label for="lpl">Pickup area (shown publicly, about 100 m)</label><select id="lpl">${geoOpt}${spotOpts}${L.pinLL ? `<option value="__pin">Pinned: near ${esc(L.pinArea)}</option>` : ""}</select>
@@ -509,15 +767,7 @@ function lform() {
 
   if (step === 0) {
     $("#lt").value = L.type || "scooter";
-    const show = () => ($("#pv").innerHTML = photos.map((p) => `<img src="${p.url}" alt="Photo preview">`).join(""));
-    show();
-    $("#lp").onchange = (e) => {
-      const files = [...e.target.files].slice(0, 4);
-      const tooBig = files.find((f) => f.size > 6 * 1024 * 1024);
-      $("#e0").textContent = tooBig ? "Each photo must be under 6 MB." : "";
-      photos = files.filter((f) => f.size <= 6 * 1024 * 1024).map((f) => ({ file: f, url: URL.createObjectURL(f) }));
-      show();
-    };
+        photoPicker($("#lp"), $("#pv"), photos, $("#e0"));
   }
   if (step === 1) {
     $("#lpl").value = L.pinLL ? "__pin" : L.area && SPOTS[L.area] ? L.area : "Aldrich Park";
@@ -571,14 +821,8 @@ async function publish() {
   const btn = $("#lnext"), err = (m) => { $("#e6").textContent = m; btn.disabled = false; btn.textContent = "Publish listing"; };
   btn.disabled = true; btn.textContent = "Publishing…";
   // 1. Upload photos to listing-photos/<your id>/...
-  const paths = [];
-  for (const p of photos) {
-    const ext = (p.file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-    const path = `${me.id}/${crypto.randomUUID()}.${ext}`;
-    const { error } = await supabase.storage.from("listing-photos").upload(path, p.file, { contentType: p.file.type });
-    if (error) return err("Photo upload failed: " + friendly(error));
-    paths.push(path);
-  }
+    let paths;
+  try { paths = await uploadPhotos(photos); } catch (e) { return err(e.message); }
   // 2. Save the listing
   const { data, error } = await supabase.from("listings").insert({
     owner_id: me.id, type: L.type, title: L.title, model: L.model || null, description: L.description || null,
@@ -597,7 +841,7 @@ async function publish() {
   loadListings();
 }
 document.addEventListener("click", (e) => {
-  if (e.target.closest("[data-list]")) { step = 0; lform(); $("#ld").showModal(); }
+    if (e.target.closest("[data-list]")) { openListForm(); }
   if (e.target.closest("[data-close]")) {
     document.querySelectorAll("dialog[open]").forEach((d) => d.close());
     if (e.target.textContent.includes("Explore")) location.hash = "#explore";
@@ -608,7 +852,7 @@ document.querySelectorAll("dialog").forEach((d) => d.addEventListener("click", (
 // ---------------------------------------------------------------------
 // Earnings estimator
 // ---------------------------------------------------------------------
-const eu = () => { const h = +$("#eh").value, c = +$("#ep").value; $("#eo").textContent = money(h * 60 * c); $("#el").textContent = `at ${c}¢/min × ${h} hrs rented per week`; };
+const eu = () => { const m = +$("#eh").value, c = +$("#ep").value; $("#eo").textContent = money(m * c); $("#el").textContent = `at ${c}¢/min × ${m} min rented per week`; };
 $("#eh").oninput = $("#ep").oninput = eu;
 
 // ---------------------------------------------------------------------
@@ -617,9 +861,9 @@ $("#eh").oninput = $("#ep").oninput = eu;
 const nav = $("#nav"), rt = $("#route"), routeLen = rt.getTotalLength(), mks = [...document.querySelectorAll(".mk")], hv = $("#hv"), story = $("#story");
 rt.style.strokeDasharray = routeLen;
 const copy = [
-  ["01 — Move", "Pick up your scooter or bike."],
-  ["02 — Explore", "Get to your destination."],
-  ["03 — Choose", "Return your scooter or bike."],
+  ["01 — Pick up", "Pick up your scooter or bike."],
+  ["02 — Ride", "Ride to your destination."],
+  ["03 — Return", "Return your scooter or bike."],
 ];
 function tick() {
   const y = scrollY;

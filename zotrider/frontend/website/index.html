@@ -8,8 +8,7 @@
 <link rel="icon" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=Jost:wght@500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
@@ -35,7 +34,8 @@
       <a class="l" href="#owners">Earn</a> -->
       <button class="btn p nav-list" data-list>List your ride</button>
       <button class="btn o sm" id="msgs">Bookings <span id="mc"></span></button>
-      <button class="btn o sm" id="lo">Log out</button>
+            <a class="btn o sm" href="reviews.html">Reviews</a>
+         <button class="btn o sm" id="prof" type="button">Profile</button><button class="btn o sm" id="lo">Log out</button>
     </div>
   </div>
 </nav>
@@ -69,7 +69,7 @@
 
 <div class="story" id="story"><div class="sticky"><div class="wrap">
   <div>
-    <span class="step" id="stepL">01 — Pick up</span>
+    <span class="step" id="stepL">01 — Move</span>
     <h2 id="stepH">Follow the route.</h2>
     <p id="stepP">Rides are parked all over campus. Scroll to trace a ride from Aldrich Park outward.</p>
     <p class="fine">Stylized map, not to scale.</p>
@@ -107,10 +107,10 @@
   </div>
   <div class="earn">
     <span class="eyebrow">Earnings estimator</span>
-    <output id="eo">$48</output>
-    <p id="el">at $4/hr x 12 hrs rented per week</p>
-    <label for="eh">Hours rented per week</label><input id="eh" type="range" min="2" max="30" value="12">
-    <label for="ep">Your price per hour</label><input id="ep" type="range" min="2" max="10" value="4">
+    <output id="eo">$0.48</output>
+    <p id="el">at 4¢/min x 12 mins rented per week</p>
+    <label for="eh">Minutes rented per week</label><input id="eh" type="range" min="2" max="30" value="12">
+    <label for="ep">Your price per minute</label><input id="ep" type="range" min="2" max="10" value="4">
     <p class="fine">Illustrative only, before ZotRider's service fee.</p>
   </div>
 </div></section>
@@ -132,10 +132,12 @@
 
 <dialog id="dd"><div class="dh"><h3 id="dt"></h3><button class="x" aria-label="Close" data-close>×</button></div><div class="db" id="dbody"></div></dialog>
 <dialog id="cd"><div class="dh"><h3 id="ct">Bookings</h3><button class="x" aria-label="Close" data-close>×</button></div><div class="db" id="cbody"></div></dialog>
+   <dialog id="pd"><div class="dh"><h3>My profile</h3><button class="x" aria-label="Close" data-close>×</button></div><div class="db" id="pbody"></div></dialog>
 <dialog id="ld"><div class="dh"><h3>List your ride</h3><button class="x" aria-label="Close" data-close>×</button></div><div class="db" id="lbody"></div></dialog>
 
 <script type="module" src="auth-guard.js"></script>
 
 <script type="module" src="app.js"></script>
+<script type="module" src="helper.js"></script>
 </body>
 </html>
